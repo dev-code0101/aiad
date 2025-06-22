@@ -61,7 +61,7 @@ jobs:
         if: matrix.service == 'frontend'
         uses: actions/setup-node@v3 # Set up specified Node.js version
         with:
-          node-version: "14"
+          node-version: "20"
       - name: Install frontend packages
         if: matrix.service == 'frontend'
         run: |
