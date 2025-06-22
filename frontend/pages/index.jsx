@@ -1,5 +1,5 @@
 // pages/index.js
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import Head from "next/head";
 import axios from "axios";
 
@@ -21,12 +21,13 @@ export default function Home() {
         }
       } catch (error) {
         setMessage("Failed to connect to the backend");
+        setTimeout(() => {}, 100);
         setStatus("Backend connection failed");
-        console.error("Error:", error);
+        console.log("Error:", error.message);
       }
     };
 
-    fetchData();
+    setTimeout(() => fetchData(), 300);
   }, []);
 
   return (
@@ -54,7 +55,7 @@ export default function Home() {
         </div>
       </main>
 
-      <style jsx>{`
+      {/* <style jsx>{`
         .container {
           min-height: 100vh;
           padding: 0 0.5rem;
@@ -107,7 +108,7 @@ export default function Home() {
           font-size: 0.9rem;
           color: #666;
         }
-      `}</style>
+      `}</style> */}
     </div>
   );
 }

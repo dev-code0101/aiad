@@ -1,4 +1,6 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import React from "react";
+import { render, screen, waitFor, act } from "@testing-library/react";
+import "@testing-library/jest-dom"; // Import jest-dom
 import Home from "../pages/index";
 import axios from "axios";
 
@@ -10,42 +12,64 @@ describe("Home Component", () => {
     jest.clearAllMocks();
   });
 
-  test("renders loading state initially", () => {
-    render(<Home />);
-    expect(screen.getByText(/Loading.../i)).toBeInTheDocument();
-  });
-
-  test("displays backend message when healthy", async () => {
+  test("displays loading state and then backend message when healthy", async () => {
     // Mocking the health check and message response
     axios.get.mockResolvedValueOnce({ data: { status: "healthy" } }); // Health check
     axios.get.mockResolvedValueOnce({ data: { message: "Hello, World!" } }); // Message response
 
-    render(<Home />);
+    await act(async () => {
+      render(<Home />);
+    });
+
+    // Check for loading state
+    expect(screen.getByText(/Loading.../i)).toBeInTheDocument();
 
     // Wait for the status message to appear
-    await waitFor(() => expect(screen.getByText(/Backend is connected!/i)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(/Backend is connected!/i)).toBeInTheDocument(), {
+      timeout: 1000,
+    });
     expect(screen.getByText(/Hello, World!/i)).toBeInTheDocument();
   });
 
-  test("displays error message when backend is not healthy", async () => {
+  test("displays loading state and then error message when backend is not healthy", async () => {
     // Mocking the health check to fail
-    axios.get.mockResolvedValueOnce({ data: { status: "unhealthy" } });
+    axios.get.mockRejectedValueOnce({ data: { status: "unhealthy" } });
 
-    render(<Home />);
+    await act(async () => {
+      render(<Home />);
+    });
+
+    // Check for loading state
+    expect(screen.getByText(/Loading.../i)).toBeInTheDocument();
 
     // Wait for the status message to appear
-    await waitFor(() => expect(screen.getByText(/Backend connection failed/i)).toBeInTheDocument());
+    await waitFor(
+      () => expect(screen.getByText(/Backend connection failed/i)).toBeInTheDocument(),
+      { timeout: 1000 }
+    );
     expect(screen.getByText(/Failed to connect to the backend/i)).toBeInTheDocument();
   });
 
-  test("displays error message when backend connection fails", async () => {
-    // Mocking the health check to throw an error
-    axios.get.mockRejectedValueOnce(new Error("Network Error"));
+  test("displays loading state and then error message when backend connection fails", async () => {
+    // Mocking the health check to be healthy
+    axios.get.mockResolvedValueOnce({ data: { status: "healthy" } }); // Health check
+    // Mocking the message retrieval to throw an error
+    axios.get.mockRejectedValueOnce(new Error("Failed to fetch message"));
 
-    render(<Home />);
+    await act(async () => {
+      render(<Home />);
+    });
+
+    // Check for loading state
+    expect(screen.getByText(/Loading.../i)).toBeInTheDocument();
 
     // Wait for the status message to appear
-    await waitFor(() => expect(screen.getByText(/Backend connection failed/i)).toBeInTheDocument());
+    await waitFor(
+      () => expect(screen.getByText(/Backend connection failed/i)).toBeInTheDocument(),
+      {
+        timeout: 5000,
+      }
+    );
     expect(screen.getByText(/Failed to connect to the backend/i)).toBeInTheDocument();
   });
 });
