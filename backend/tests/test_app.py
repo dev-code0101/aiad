@@ -1,22 +1,29 @@
+# test/test_app.py
 import unittest
-from app import main as app
+from fastapi.testclient import TestClient
+from app.main import app  # Import the FastAPI app instance
 
 
 class BasicTests(unittest.TestCase):
 
     def setUp(self):
-        self.app = app.test_client()
-        self.app.testing = True
+        self.client = TestClient(app)  # Create a TestClient instance
 
     def test_health(self):
-        response = self.app.get('/health')
+        response = self.client.get('/api/health')  # Corrected endpoint
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json, {'status': 'healthy'})
+        self.assertEqual(
+            response.json(),
+            {'status': 'healthy', 'message': 'Backend is running successfully'},
+        )  # Adjusted expected response
 
     def test_message(self):
-        response = self.app.get('/api/message')
+        response = self.client.get('/api/message')
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json, {'message': 'Hello, World!'})
+        self.assertEqual(
+            response.json(),
+            {'message': "You've successfully integrated the backend!"},
+        )  # Adjusted expected response
 
 
 if __name__ == '__main__':
