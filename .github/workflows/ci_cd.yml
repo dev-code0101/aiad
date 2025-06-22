@@ -1,0 +1,174 @@
+# .github/workflows/ci_cd.yml:
+# Settings → Secrets:
+#     AWS_ACCOUNT_ID
+#     AWS_REGION
+#     ECR_BACKEND_REPOSITORY (e.g. my-backend)
+#     ECR_FRONTEND_REPOSITORY (e.g. my-frontend)
+#     EB_ENVIRONMENT_NAME (if using Elastic Beanstalk)
+#     ECS_CLUSTER (if using ECS)
+#     ECS_SERVICE_BACKEND
+#     ECS_SERVICE_FRONTEND
+
+name: CI/CD Pipeline
+
+# Prevent overlapping runs on the same branch
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  push:
+    branches:
+      - develop
+      - main
+
+env:
+  AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+  ECR_BACKEND_REPO: ${{ secrets.ECR_BACKEND_REPOSITORY }}
+  ECR_FRONTEND_REPO: ${{ secrets.ECR_FRONTEND_REPOSITORY }}
+
+jobs:
+  build-and-test:
+    name: Build & Test
+    runs-on: ubuntu-latest
+
+    # Run backend and frontend in parallel via matrix
+    strategy:
+      fail-fast: true
+      matrix:
+        service: [backend, frontend] # Define two services to build & test
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3 # Pulls your repo’s code into the runner
+
+      - name: Set up cache for dependencies
+        uses: actions/cache@v3 # Cache npm & pip deps between runs
+        with:
+          path: |
+            ${{ matrix.service }}/node_modules
+            ${{ matrix.service }}/.npm
+            ~/.cache/pip
+          key: ${{ runner.os }}-deps-${{ matrix.service }}-${{ hashFiles(
+            matrix.service == 'frontend' && 'frontend/package-lock.json' ||
+            'backend/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-deps-${{ matrix.service }}-
+
+      # FRONTEND: Install Node.js and npm deps
+      - name: Install dependencies
+        if: matrix.service == 'frontend'
+        uses: actions/setup-node@v3 # Set up specified Node.js version
+        with:
+          node-version: "14"
+      - name: Install frontend packages
+        if: matrix.service == 'frontend'
+        run: |
+          cd frontend
+          npm ci                          # Clean install for reproducible builds
+
+      # BACKEND: Install Python and pip deps
+      - name: Install dependencies
+        if: matrix.service == 'backend'
+        uses: actions/setup-python@v4 # Set up specified Python version
+        with:
+          python-version: "3.9"
+      - name: Install backend packages
+        if: matrix.service == 'backend'
+        run: |
+          cd backend
+          pip install --upgrade pip       # Ensure latest pip
+          pip install -r requirements.txt # Install pinned requirements
+
+      # Run tests for the current service
+      - name: Run tests
+        run: |
+          if [ "${{ matrix.service }}" = "frontend" ]; then
+            cd frontend
+            npm test -- --watchAll=false --ci  # CI mode, no watcher
+          else
+            cd backend
+            python -m unittest discover -s tests  # Discover & run all tests
+          fi
+
+  # build-and-push-images:
+  #   name: Build & Push Docker Images
+  #   runs-on: ubuntu-latest
+  #   needs: build-and-test
+
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v3
+
+  #     - name: Configure AWS credentials
+  #       uses: aws-actions/configure-aws-credentials@v2
+  #       with:
+  #         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  #         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  #         aws-region: ${{ env.AWS_REGION }}
+
+  #     - name: Login to ECR
+  #       uses: aws-actions/amazon-ecr-login@v1
+
+  #     - name: Build, tag & push backend image
+  #       run: |
+  #         IMAGE_URI=${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_BACKEND_REPO }}
+  #         docker build \
+  #           -t $IMAGE_URI:latest \
+  #           -t $IMAGE_URI:${{ github.sha }} \
+  #           -f backend/Dockerfile backend/
+  #         docker push $IMAGE_URI:latest
+  #         docker push $IMAGE_URI:${{ github.sha }}
+
+  #     - name: Build, tag & push frontend image
+  #       run: |
+  #         IMAGE_URI=${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_FRONTEND_REPO }}
+  #         docker build \
+  #           -t $IMAGE_URI:latest \
+  #           -t $IMAGE_URI:${{ github.sha }} \
+  #           -f frontend/Dockerfile frontend/
+  #         docker push $IMAGE_URI:latest
+  #         docker push $IMAGE_URI:${{ github.sha }}
+
+  # deploy:
+  #   name: Deploy to Production
+  #   needs: build-and-push-images
+  #   runs-on: ubuntu-latest
+  #   if: github.ref == 'refs/heads/main'
+
+  #   environment:
+  #     name: production
+  #     url: ${{ secrets.PRODUCTION_URL }} # (optional) to display in GitHub UI
+
+  #   steps:
+  #     - name: Configure AWS credentials
+  #       uses: aws-actions/configure-aws-credentials@v2
+  #       with:
+  #         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  #         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  #         aws-region: ${{ env.AWS_REGION }}
+
+  #     # Example 1: Elastic Beanstalk
+  #     - name: Deploy to Elastic Beanstalk
+  #       if: ${{ secrets.DEPLOY_TARGET == 'eb' }}
+  #       run: |
+  #         cd backend
+  #         pip install awsebcli
+  #         eb deploy ${{ secrets.EB_ENVIRONMENT_NAME }}
+
+  #     # Example 2: Amazon ECS
+  #     - name: Update ECS services
+  #       if: ${{ secrets.DEPLOY_TARGET == 'ecs' }}
+  #       run: |
+  #         # Update backend service
+  #         aws ecs update-service \
+  #           --cluster ${{ secrets.ECS_CLUSTER }} \
+  #           --service ${{ secrets.ECS_SERVICE_BACKEND }} \
+  #           --force-new-deployment
+
+  #         # Update frontend service
+  #         aws ecs update-service \
+  #           --cluster ${{ secrets.ECS_CLUSTER }} \
+  #           --service ${{ secrets.ECS_SERVICE_FRONTEND }} \
+  #           --force-new-deployment
