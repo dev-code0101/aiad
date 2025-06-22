@@ -66,7 +66,7 @@ jobs:
         if: matrix.service == 'frontend'
         run: |
           cd frontend
-          npm ci                          # Clean install for reproducible builds
+          npm i                          # Clean install for reproducible builds
 
       # BACKEND: Install Python and pip deps
       - name: Install dependencies
