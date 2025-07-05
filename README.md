@@ -1,6 +1,6 @@
-# DevOps Assignment
+# DevOps LAB
 
-This project consists of a FastAPI backend and a Next.js frontend that communicates with the backend.
+This project features a FastAPI backend and a Next.js frontend that communicate seamlessly.
 
 ## Project Structure
 
@@ -9,18 +9,18 @@ This project consists of a FastAPI backend and a Next.js frontend that communica
 ├── backend/               # FastAPI backend
 │   ├── app/
 │   │   └── main.py       # Main FastAPI application
-│   └── requirements.txt    # Python dependencies
+│   └── requirements.txt   # Python dependencies
 └── frontend/              # Next.js frontend
     ├── pages/
-    │   └── index.js     # Main page
+    │   └── index.js      # Main page
     ├── public/            # Static files
     └── package.json       # Node.js dependencies
 ```
 
 ## Prerequisites
 
-- Python 3.8+
-- Node.js 16+
+- Python 3.8 or higher
+- Node.js 16 or higher
 - npm or yarn
 
 ## Backend Setup
@@ -46,7 +46,7 @@ This project consists of a FastAPI backend and a Next.js frontend that communica
    uvicorn app.main:app --reload --port 8000
    ```
 
-   The backend will be available at `http://localhost:8000`
+   The backend will be accessible at `http://localhost:8000`.
 
 ## Frontend Setup
 
@@ -62,7 +62,7 @@ This project consists of a FastAPI backend and a Next.js frontend that communica
    yarn
    ```
 
-3. Configure the backend URL (if different from default):
+3. Configure the backend URL (if different from the default):
    - Open `.env.local`
    - Update `NEXT_PUBLIC_API_URL` with your backend URL
    - Example: `NEXT_PUBLIC_API_URL=https://your-backend-url.com`
@@ -74,52 +74,55 @@ This project consists of a FastAPI backend and a Next.js frontend that communica
    yarn dev
    ```
 
-   The frontend will be available at `http://localhost:3000`
+   The frontend will be available at `http://localhost:3000`.
 
 ## Changing the Backend URL
 
-To change the backend URL that the frontend connects to:
+To update the backend URL that the frontend connects to:
 
-1. Open the `.env.local` file in the frontend directory
-2. Update the `NEXT_PUBLIC_API_URL` variable with your new backend URL
-3. Save the file
-4. Restart the Next.js development server for changes to take effect
+1. Open the `.env.local` file in the frontend directory.
+2. Modify the `NEXT_PUBLIC_API_URL` variable with your new backend URL.
+3. Save the file.
+4. Restart the Next.js development server for the changes to take effect.
 
 Example:
 ```
 NEXT_PUBLIC_API_URL=https://your-new-backend-url.com
 ```
 
-## For deployment:
-   ```bash
-   npm run build
-   # or
-   yarn build
-   ```
+## Deployment
 
-   AND
+To build and start the frontend for deployment, run:
 
-   ```bash
-   npm run start
-   # or
-   yarn start
-   ```
+```bash
+npm run build
+# or
+yarn build
+```
 
-   The frontend will be available at `http://localhost:3000`
+Then, start the server:
+
+```bash
+npm run start
+# or
+yarn start
+```
+
+The frontend will be available at `http://localhost:3000`.
 
 ## Testing the Integration
 
-1. Ensure both backend and frontend servers are running
-2. Open the frontend in your browser (default: http://localhost:3000)
-3. If everything is working correctly, you should see:
-   - A status message indicating the backend is connected
+1. Ensure both backend and frontend servers are running.
+2. Open the frontend in your browser (default: `http://localhost:3000`).
+3. If everything is functioning correctly, you should see:
+   - A status message indicating the backend is connected.
    - The message from the backend: "You've successfully integrated the backend!"
-   - The current backend URL being used
+   - The current backend URL being used.
 
 ## API Endpoints
 
 - `GET /api/health`: Health check endpoint
   - Returns: `{"status": "healthy", "message": "Backend is running successfully"}`
 
-- `GET /api/message`: Get the integration message
+- `GET /api/message`: Retrieve the integration message
   - Returns: `{"message": "You've successfully integrated the backend!"}`
